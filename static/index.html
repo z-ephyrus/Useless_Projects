@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>KeyPress Battle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body
+    class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen"
+  >
+    <h1 class="text-4xl font-bold mb-4">⚡ Key Press Battle ⚡</h1>
+    <p class="mb-6">Press any key! The most pressed key wins.</p>
+
+    <div id="leaderboard" class="bg-gray-800 p-4 rounded-lg shadow-lg w-80">
+      <h2 class="text-xl font-semibold mb-2">Leaderboard</h2>
+      <ul id="keys" class="space-y-2"></ul>
+    </div>
+
+    <button
+      id="clearBtn"
+      class="mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded shadow-lg"
+    >
+      🗑 Clear Leaderboard
+    </button>
+
+    <script>
+      const ws = new WebSocket(`ws://${location.host}/ws`);
+      const keysList = document.getElementById("keys");
+      const clearBtn = document.getElementById("clearBtn");
+
+      document.addEventListener("keydown", (e) => {
+        ws.send(e.key);
+      });
+
+      clearBtn.addEventListener("click", () => {
+        ws.send("__CLEAR__");
+      });
+
+      ws.onmessage = (event) => {
+        const counts = JSON.parse(event.data);
+        keysList.innerHTML = "";
+        const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+        sorted.forEach(([key, count], index) => {
+          keysList.innerHTML += `
+            <li class="flex justify-between p-2 rounded ${
+              index === 0 ? "bg-yellow-500 text-black font-bold" : "bg-gray-700"
+            }">
+              <span>${key.toUpperCase()}</span>
+              <span>${count}</span>
+            </li>`;
+        });
+      };
+    </script>
+  </body>
+</html>
