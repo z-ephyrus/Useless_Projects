@@ -24,16 +24,23 @@
     </button>
 
     <script>
-      const ws = new WebSocket(`ws://${location.host}/ws`);
+      // Auto-select ws:// or wss:// based on current page protocol
+      const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
+      const ws = new WebSocket(`${wsProtocol}//${location.host}/ws`);
+
       const keysList = document.getElementById("keys");
       const clearBtn = document.getElementById("clearBtn");
 
       document.addEventListener("keydown", (e) => {
-        ws.send(e.key);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(e.key);
+        }
       });
 
       clearBtn.addEventListener("click", () => {
-        ws.send("__CLEAR__");
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send("__CLEAR__");
+        }
       });
 
       ws.onmessage = (event) => {

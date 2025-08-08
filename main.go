@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -13,15 +14,23 @@ var (
 	counts   = make(map[string]int)
 	mu       sync.Mutex
 	clients  = make(map[*websocket.Conn]bool)
-	upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	upgrader = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
+	}
 )
 
 func main() {
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/ws", handleWS)
 
-	fmt.Println("Server started at http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	// Use Render's PORT env var or fallback to 8080 locally
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	fmt.Println("Server started on port", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 func serveHome(w http.ResponseWriter, r *http.Request) {
@@ -35,6 +44,7 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
+
 	clients[conn] = true
 
 	for {
@@ -46,8 +56,7 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 
 		mu.Lock()
 		if string(msg) == "__CLEAR__" {
-			// Reset leaderboard
-			counts = make(map[string]int)
+			counts = make(map[string]int) // Reset leaderboard
 			mu.Unlock()
 			broadcastCounts()
 			continue
